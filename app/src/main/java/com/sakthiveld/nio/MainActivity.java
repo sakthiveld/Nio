@@ -1,27 +1,31 @@
 package com.sakthiveld.nio;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.zip.Deflater;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String sHost = "uatstream.angelbroking.com";
-    private static final int iPort = 8444;
-    private static final String sStreamingRequest = "63=FT3.0|64=206|65=1|1=5$7=214599|1=5$7=214908|230=1";
+//    private static final String sHost = "uatstream.angelbroking.com";
+//    private static final int iPort = 8444;
+//    private static final String sStreamingRequest = "63=FT3.0|64=206|65=1|1=5$7=214599|1=5$7=214908|230=1";
+
+    private static final String sHost = "mprod-stream2.angelbroking.com";
+    private static final int iPort = 8443;
+    private static final String sStreamingRequest = "63=FT3.0|64=206|65=1|1=5$7=213728|1=5$7=214023|1=5$7=214023|1=5$7=215546|230=1";
 
     SocketChannel socketChannel = null;
     SocketTask socketTask;
@@ -47,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
 
         byte[] send = new byte[1024];
         Deflater compresser = new Deflater();
-        compresser.setInput("63=FT3.0|64=206|65=1|1=1$7=26000|230=1|".getBytes());
+        compresser.setInput(sStreamingRequest.getBytes());
         compresser.finish();
         int prefixLength = compresser.deflate(send);
         compresser.end();
@@ -56,8 +60,16 @@ public class MainActivity extends AppCompatActivity {
         String actualLength = getZeroString(convertValue.length()) + convertValue;
         byte[] actualBytes = new byte[1024];
         actualBytes[0] = start;
+        System.arraycopy(actualLength.getBytes(), 0, actualBytes, 1, actualLength.length());
+        if (prefixLength >= 0)
+            System.arraycopy(send, 0, actualBytes, 6, prefixLength);
+
+
+        //Log.e("byte", Arrays.toString(actualBytes));
+
 
         return ByteBuffer.wrap(actualBytes);
+
     }
 
     public static final int CASE_1 = 1;
@@ -113,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
         protected void onPreExecute() {
         }
 
+        @RequiresApi(api = Build.VERSION_CODES.O)
         @Override
         protected Boolean doInBackground(ByteBuffer... byteBuffers) {
 
@@ -120,19 +133,23 @@ public class MainActivity extends AppCompatActivity {
                 if(connected()) {
                     Log.e("Connection Report", "connected");
 
-                    ByteBuffer byteBuffer1 = ByteBuffer.allocate(1024);
-                    byteBuffer1.put(byteReturn());
-                    socketChannel.write(byteBuffer1);
+//                    ByteBuffer byteBuffer1 = ByteBuffer.allocate(1024);
+//                    byteBuffer1.put(byteReturn());
+//                    socketChannel.write(byteBuffer1);
 
                     socketChannel.write(byteBuffers);
+                    Log.e("request", Arrays.toString(byteBuffers[0].array()));
 
                     ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
                     Log.e("response", String.valueOf(socketChannel.read(byteBuffer)));
 
 
+
+
+
                 } else {
                     socketChannel = SocketChannel.open();
-                    socketChannel.connect(new InetSocketAddress("uatstream.angelbroking.com", 8444));
+                    socketChannel.connect(new InetSocketAddress(sHost, iPort));
                     socketChannel.configureBlocking(true);
                     Log.e("Connection Report", "Not connected");
                     socketTask.cancel(true);
@@ -151,8 +168,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+
+
 }
-
-
-
-//63=FT3.0|64=206|65=1|1=1$7=15083|1=1$7=236|1=1$7=5900|1=1$7=16669|1=1$7=16675|1=1$7=317|1=1$7=10604|1=1$7=526|1=1$7=547|1=1$7=694|1=1$7=20374|1=1$7=881|1=1$7=910|1=1$7=4717|1=1$7=1232|1=1$7=7229|1=1$7=1330|1=1$7=1333|1=1$7=1348|1=1$7=1363|1=1$7=1394|1=1$7=4963|1=1$7=5258|1=1$7=29135|1=1$7=1594|1=1$7=1624|1=1$7=1660|1=1$7=11723|1=1$7=1922|1=1$7=11483|1=1$7=26000|1=3$7=19000|230=1|
